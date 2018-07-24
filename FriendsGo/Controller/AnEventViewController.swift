@@ -1,0 +1,448 @@
+//
+//  AnEventViewController.swift
+//  FriendsGo
+//
+//  Created by Radhia Mighri on 16/04/2018.
+//  Copyright © 2018 Radhia Mighri. All rights reserved.
+//
+
+import UIKit
+import MapKit
+
+class AnEventViewController: UIViewController, UINavigationControllerDelegate{
+    
+     @IBOutlet var NomEvent: UILabel!
+     @IBOutlet var descEvent: UILabel!
+     @IBOutlet var dateEvent: UILabel!
+     @IBOutlet var heureEvent: UILabel!
+     @IBOutlet var LieuEvent: UILabel!
+     @IBOutlet var participationEvent: UILabel!
+     @IBOutlet var InterestedEvent: UILabel!
+     @IBOutlet var NonparticipationEvent: UILabel!
+     @IBOutlet var imageEvent: UIImageView!
+    
+     @IBOutlet var image2: UIImageView!
+     @IBOutlet var imag3: UIImageView!
+     @IBOutlet var image4: UIImageView!
+    
+    @IBOutlet var imageicon1: UIImageView!
+    @IBOutlet var imageicon2: UIImageView!
+    @IBOutlet var imageicon3: UIImageView!
+    
+     @IBOutlet weak  var InvitedFriendsButton: UIButton!
+    
+     var event: Event!
+     var friend: Friend!
+     let urlGetUsername = MyClass.Constants.urlGetUsername
+     let urlGetParticipated = MyClass.Constants.urlGetParticipated
+     let userId = UserDefaults.standard.string(forKey: "Saveid")!
+     var FriendArray = [Friend]()
+     let urlGetNonParticipated = MyClass.Constants.urlGetNonParticipated
+     let urlGetInteresed = MyClass.Constants.urlGetInteresed
+    
+    @IBOutlet weak var mapView: MKMapView!
+    var matchingItems: [MKMapItem] = [MKMapItem]()
+    
+    
+    override func viewDidLoad() {
+        descEvent.text = event.descriptif
+        dateEvent.text = event.date
+            heureEvent.text = event.heure
+        NomEvent.text = event.titre
+        LieuEvent.text = event.adresse
+        
+        image2.layer.cornerRadius = 20
+        image2.clipsToBounds = true
+        
+        imag3.layer.cornerRadius = 20
+        imag3.clipsToBounds = true
+        
+        image4.layer.cornerRadius = 20
+        image4.clipsToBounds = true
+        
+        let para = ["IdU" : userId,
+                 "IDEvent" : event.idE!]
+        
+        Service.sharedInstance.loadInfoAny(parameters: para, url: urlGetParticipated) { (state, Objets) in
+            if state {
+                self.FriendArray = Objets!
+                print("Objetssssssssssssssss")
+                 self.participationEvent.text =  String(describing : self.FriendArray.count) + " Participant(s) ,"
+                self.image2.sd_setImage(with: URL(string: self.FriendArray[0].photoURL), placeholderImage: UIImage(named: "profile"))
+                self.imageicon1.isHidden = false
+                UserDefaults.standard.set(self.FriendArray.count, forKey: "participatedPoeple")
+            } else {
+                 self.imageicon1.isHidden = true
+                print("nooo")
+            }
+            
+        }
+        
+        
+        let paraa = ["IdU" : userId,
+                    "IDEvent" : event.idE!]
+        
+        Service.sharedInstance.loadInfoAny(parameters: paraa, url: urlGetInteresed) { (state, Objets) in
+            if state {
+                self.FriendArray = Objets!
+                print("Objetssssssssssssssss")
+                self.InterestedEvent.text =  String(describing : self.FriendArray.count) + " Intéressé(s) ,"
+                 self.imag3.sd_setImage(with: URL(string: self.FriendArray[0].photoURL), placeholderImage: UIImage(named: "profile"))
+                UserDefaults.standard.set(self.FriendArray.count, forKey: "interestedPoeple")
+                    self.imageicon2.isHidden = false
+            } else {
+                print("nooo")
+                    self.imageicon2.isHidden = true
+            }
+        }
+        
+        let paraaa = ["IdU" : userId,
+                    "IDEvent" : event.idE!]
+        
+        Service.sharedInstance.loadInfoAny(parameters: paraaa, url: urlGetNonParticipated) { (state, Objets) in
+            if state {
+                self.FriendArray = Objets!
+                print("Objetssssssssssssssss")
+               self.NonparticipationEvent.text =  String(describing : self.FriendArray.count) + " Non participant(s)"
+                 self.image4.sd_setImage(with: URL(string: self.FriendArray[0].photoURL), placeholderImage: UIImage(named: "profile"))
+                UserDefaults.standard.set(self.FriendArray.count, forKey: "NonParticipatedPoeple")
+                    self.imageicon3.isHidden = false
+            } else {
+                    self.imageicon3.isHidden = true
+                print("nooo")
+            }
+        }
+
+        self.view.backgroundColor = UIColor.black.withAlphaComponent(0.8)
+        
+        self.showAnimate()
+        /*
+        let p = ["IdU" : event.IdU] as [String : Any]
+        
+        Service.sharedInstance.loadInfoAny(parameters: p, url: urlGetUsername) { (state, Objets) in
+            if state {
+                self.friend = Objets![0]
+                self.proprietaireEvent.text = self.friend.Nom + " "+self.friend.prenom
+                print("Objets")
+            } else {
+                print("nooo")
+            }
+            
+        }
+        */
+        
+        imageEvent.sd_setImage(with: URL(string: event.image), placeholderImage: nil)
+   
+    
+        mapView.removeAnnotations(mapView.annotations)
+        self.performSearch()
+        
+        
+        InvitedFriendsButton.layer.cornerRadius = 20
+        InvitedFriendsButton.clipsToBounds = true
+        
+        
+        
+        let participatedPoeple = UserDefaults.standard.integer(forKey: "participatedPoeple")
+        let interestedPoeple = UserDefaults.standard.integer(forKey: "interestedPoeple")
+        let NonParticipatedPoeple = UserDefaults.standard.integer(forKey: "NonParticipatedPoeple")
+        let sum = (participatedPoeple + interestedPoeple + NonParticipatedPoeple)
+        if (sum > 4)
+        {
+            InvitedFriendsButton.setTitle(String(describing : sum - 4), for: .normal)
+        }
+        else
+        {
+            InvitedFriendsButton.setTitle("0", for: .normal)
+        }
+        
+    
+    }
+    
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        // Hide the navigation bar on the this view controller
+        self.navigationController?.setNavigationBarHidden(true, animated: animated)
+    }
+   
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        
+        // Show the navigation bar on other view controllers
+        self.navigationController?.setNavigationBarHidden(false, animated: animated)
+    }
+ 
+    
+    @IBAction func newPopUp(_ sender: AnyObject) {
+      
+        let popOverVC = UIStoryboard(name: "MWAPopup", bundle: nil).instantiateViewController(withIdentifier: "PopAnEvent") as! PopAnEvent
+        popOverVC.event = event
+        self.addChildViewController(popOverVC)
+        //popOverVC.view.frame = self.view.frame
+        self.view.addSubview(popOverVC.view)
+       popOverVC.didMove(toParentViewController: self)
+        //popOverVC.show(vc: self)
+ 
+    }
+    
+    @IBAction func back(_ sender: UIButton) {
+        
+        print("%%%%%%%%%%%%%%%%%%%%")
+        
+        let mystoryboard:UIStoryboard = UIStoryboard(name:"Menu", bundle: nil)
+        
+        let ViewController = mystoryboard.instantiateViewController(withIdentifier: "EventViewController") as! EventViewController
+        
+        //ViewController.event = event
+        
+        self.navigationController?.pushViewController(ViewController, animated: true)
+ 
+    }
+    
+    func performSearch() {
+        
+        matchingItems.removeAll()
+        let request = MKLocalSearchRequest()
+        request.naturalLanguageQuery = event.adresse
+        request.region = mapView.region
+        
+        let search = MKLocalSearch(request: request)
+        
+        search.start(completionHandler: {(response, error) in
+            
+            if error != nil {
+                print("Error occured in search: \(error!.localizedDescription)")
+            } else if response!.mapItems.count == 0 {
+                print("No matches found")
+            } else {
+                print("Matches found")
+                
+                for item in response!.mapItems {
+                    print("Name = \(item.name)")
+                    print("Phone = \(item.phoneNumber)")
+                    
+                    self.matchingItems.append(item as MKMapItem)
+                    print("Matching items = \(self.matchingItems.count)")
+                    
+                    let annotation = MKPointAnnotation()
+                    annotation.coordinate = item.placemark.coordinate
+                    annotation.title = item.name
+                    self.mapView.addAnnotation(annotation)
+                    
+                    
+                }
+            }
+        })
+    }
+    
+    
+    
+    @IBAction func InvitedFriends(_ sender: UIButton) {
+
+        print("********************************************")
+
+        let mystoryboard:UIStoryboard = UIStoryboard(name:"Menu", bundle: nil)
+        
+        let ViewController = mystoryboard.instantiateViewController(withIdentifier: "InviteFriendsController") as! InviteFriendsController
+        ViewController.event = event
+        self.navigationController?.pushViewController(ViewController, animated: true)
+        
+      
+         //self.navigationController?.navigationBar.backItem?.title = "Les invités"
+        
+        //self.navigationController?.navigationBarHidden = true;
+
+    }
+    
+    
+    
+    
+    func showAnimate()
+    {
+        self.view.transform = CGAffineTransform(scaleX: 1.3, y: 1.3)
+        self.view.alpha = 0.0;
+        UIView.animate(withDuration: 0.25, animations: {
+            self.view.alpha = 1.0
+            self.view.transform = CGAffineTransform(scaleX: 1.0, y: 1.0)
+        });
+    }
+    
+    func removeAnimate()
+    {
+        UIView.animate(withDuration: 0.25, animations: {
+            self.view.transform = CGAffineTransform(scaleX: 1.3, y: 1.3)
+            self.view.alpha = 0.0;
+        }, completion:{(finished : Bool)  in
+            if (finished)
+            {
+                self.view.removeFromSuperview()
+            }
+        });
+    }
+    
+    func show(vc:UIViewController) {
+        vc.addChildViewController(self)
+        vc.view.addSubview(self.view)
+    }
+    
+    func close() {
+        self.view.removeFromSuperview()
+        self.removeFromParentViewController()
+    }
+
+    /*
+    func createAddEventCustomPopup() {
+        
+        let popup = MWAPopupAddEvent.createPopup(aPopupType: .addEventView, titleString: " ", messageString: " ", buttonNames: ["Annuler", "Enregistrer"])
+        
+        popup?.titleTextFont = UIFont.systemFont(ofSize: 22)
+        popup?.titleTextColor = .black
+        
+        popup?.messageTextFont = UIFont.boldSystemFont(ofSize: 16)
+        popup?.messageTextColor = .black
+        
+        popup?.setTextFieldBorderStyle(style: .none)
+        
+        //  popup?.textFieldBackgroundImage = UIImage(named: "textfield_bg")
+        popup?.textFieldBackgroundColor = UIColor(hex: "414141")
+        
+        popup?.textFieldTextColor = .white
+        popup?.textFieldTextFont = UIFont.systemFont(ofSize: 12)
+        
+        popup?.textFieldPlaceholder = "N° de téléphone"
+        
+        popup?.textFieldPlaceholderColor = .white
+        popup?.textFieldPlaceholderFont = UIFont.boldSystemFont(ofSize: 11)
+        popup?.show(vc: self.navigationController!)
+        //popup?.show(vc: self)
+        
+        popup?.onFirstButtonTapped = { () in
+            
+        }
+        popup?.onSecondButtonTapped = { () in
+            print("Cancel Tapped")
+        }
+    }
+    
+    
+    /*
+     func createEventCustomPopup() {
+     
+     let popup = File.createPopup(aPopupType: .pop)
+     popup?.show(vc: self.navigationController!)
+     //popup?.show(vc: self)
+     
+     popup?.onFirstButtonTapped = { () in
+     }
+     popup?.onSecondButtonTapped = { () in
+     print("Cancel Tapped")
+     }
+     }
+     */
+    
+    
+    
+    
+    func createTwoButtonHeadCustomPopup() {
+        
+        let popup = MWAPopup.createPopup(aPopupType: .TwoButtonsHead, titleString: "Êtes-vous sûr?", messageString: "Supprimer ce contact!", buttonNames: ["Non!", "Oui!"])
+        
+        popup?.titleTextFont = UIFont.systemFont(ofSize: 22)
+        popup?.titleTextColor = .black
+        
+        popup?.messageTextFont = UIFont.boldSystemFont(ofSize: 16)
+        popup?.messageTextColor = .black
+        popup?.show(vc: self.navigationController!)
+        //popup?.show(vc: self)
+        popup?.onFirstButtonTapped = { () in
+            print("Yes Tapped")
+            self.createSingleButtonCustomPopup()
+        }
+        popup?.onSecondButtonTapped = { () in
+            print("No Tapped")
+        }
+    }
+    
+    
+    func createTwoButtonCustomPopup() {
+        let popup = MWAPopupC.createPopupWithout(aPopupType: .TwoButtons, buttonNames: ["Ajouter un numéro de               téléphone", "Supprimer"])
+        
+        popup?.show(vc: self.navigationController!)
+        //popup?.show(vc: self)
+        // button Supprimer
+        popup?.onFirstButtonTapped = { () in
+            print("Yes Tapped")
+            // self.createSingleButtonCustomPopup()
+            self.createTwoButtonHeadCustomPopup()
+        }
+        // Button ajouter n° de contact
+        popup?.onSecondButtonTapped = { () in
+            print("No Tapped")
+            self.createSingleTextfieldCustomPopup()
+        }
+    }
+    
+    func createSingleButtonCustomPopup() {
+        
+        let popup = MWAPopup.createPopup(aPopupType: .SingleButton, titleString: "Supprimé!", messageString: "Votre contact a été supprimé!", buttonNames: ["OK"])
+        
+        popup?.titleTextFont = UIFont.systemFont(ofSize: 22)
+        popup?.titleTextColor = .black
+        
+        popup?.messageTextFont = UIFont.boldSystemFont(ofSize: 16)
+        popup?.messageTextColor = .black
+        popup?.show(vc: self.navigationController!)
+        //popup?.show(vc: self)
+        popup?.onFirstButtonTapped = { () in
+            print("OK Tapped")
+        }
+        
+    }
+    
+    func createSingleTextfieldCustomPopup() {
+        
+        let popup = MWAPopup.createPopup(aPopupType: .TextFieldTwoButtons, titleString: " ", messageString: "Numéro de téléphone", buttonNames: ["OK", "Annuler"])
+        
+        popup?.titleTextFont = UIFont.systemFont(ofSize: 22)
+        popup?.titleTextColor = .black
+        
+        popup?.messageTextFont = UIFont.boldSystemFont(ofSize: 16)
+        popup?.messageTextColor = .black
+        
+        popup?.setTextFieldBorderStyle(style: .none)
+        
+        //  popup?.textFieldBackgroundImage = UIImage(named: "textfield_bg")
+        popup?.textFieldBackgroundColor = UIColor(hex: "414141")
+        
+        popup?.textFieldTextColor = .white
+        popup?.textFieldTextFont = UIFont.systemFont(ofSize: 12)
+        
+        popup?.textFieldPlaceholder = "N° de téléphone"
+        
+        popup?.textFieldPlaceholderColor = .white
+        popup?.textFieldPlaceholderFont = UIFont.boldSystemFont(ofSize: 11)
+        popup?.show(vc: self.navigationController!)
+        //popup?.show(vc: self)
+        
+        popup?.onFirstButtonTapped = { () in
+            print("Entered Information::" + (popup?.textField.text)!)
+            
+            if (popup?.textField.text!.isPhone())!
+            {
+                let tagg = UserDefaults.standard.string(forKey: "ag")
+                print(tagg!)
+                let parameters = ["idU": tagg!,
+                                  "telephone": popup?.textField.text!]
+                
+                //Service.sharedInstance.postIt(parameters:parameters as! [String : String], url:self.urlAddTelephoneContact)
+            }
+            
+        }
+        popup?.onSecondButtonTapped = { () in
+            print("Cancel Tapped")
+        }
+    }
+ */
+}
