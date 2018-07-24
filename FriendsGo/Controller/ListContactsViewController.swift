@@ -54,6 +54,7 @@ class ListContactsViewController: UIViewController, UITableViewDataSource, UITab
     }
     private func setUpFriends() {
 
+        
         let p = ["idU" : userId]
         
         Service.sharedInstance.loadInfoAny(parameters: p, url: urlgetContacts) { (state, Objets) in
